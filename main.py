@@ -32,15 +32,13 @@ def create_account ():
         print ("Valid Password")
         selected_artist = input("Please enter a preferred artist: ")
         selected_genre = input("Please enter a preferred genre: ")
+        print ("-------------------------------------------------")
         password_check = True
 
   return (password, username,selected_artist,selected_genre)
 
 create_account()
-print (username)
-print (password)
-print (selected_artist)
-print(selected_genre)
+
 
 def store_logins(username, password,selected_artist,selected_genre):
   conn = sqlite3.connect('login.db')
@@ -60,7 +58,7 @@ def store_logins(username, password,selected_artist,selected_genre):
 store_logins(username, password, selected_artist, selected_genre)
 
 
-print ("welcome" + username + "to the playlist database")
+print ("welcome" +  username  + "to the playlist database")
 print ("powered by SQLITE3")
 
 def sign_in():
@@ -71,21 +69,20 @@ def sign_in():
 
   cur.execute('SELECT * FROM login_database')
   database = cur.fetchall()
-  for i in database:
-    username_check = i[1]
-    password_check = i[2]
+  username_check = username
+  password_check = password
 
-    if username != username_input and username != password_input:
-      print("password or username is not valid")
-      print("This program will force quite")
-      print("----------------------------------")
-      exit()
-    else:
-      print("username and password correct")
-      print("-------------------------------")
+  if username_check != username_input and password_check != password_input:
+    print("password or username is not valid")
+    print("This program will force quite")
+    print("----------------------------------")
+    exit()
+  else:
+    print("username and password correct")
+    print("-------------------------------")
+
 
 sign_in()
-
 
 def alphabet_sort ():
   conn = sqlite3.connect('song.db')
@@ -115,10 +112,11 @@ def genre_playlist():
   conn = sqlite3.connect('song.db')
   cur = conn.cursor()
   playlist_name = input("what is this playlist called: ")
-  cur.execute("CREATE VIEW '" + str(playlist_name) +"' AS SELECT * FROM 'song.db' WHERE Genre = '" + str(selected_genre) + "' ORDER BY RANDOM() LIMIT 5")
-  my_data = cur.fetchall()
-  for i in my_data:
-	print(my_data)
+  cur.execute("CREATE VIEW IF NOT EXISTS'" + str(playlist_name) +"' AS SELECT * FROM 'song.db' WHERE Genre = '" + str(selected_genre) + "' ORDER BY RANDOM() LIMIT 5")
+  cur.execute("SELECT * FROM'" + str(playlist_name) + "'")
+  view = cur.fetchall()
+  for i in view:
+    print(i)
   conn.commit()
   conn.close()
 
@@ -132,7 +130,7 @@ def pick_artist_textfile():
   f = open(selected_artist,"w")
   for i in my_data:
     f.write(my_data)
-    print (my_data)
+    print (i)
   f.close()
   conn.commit()
   conn.close()
