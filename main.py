@@ -116,6 +116,9 @@ def genre_playlist():
   cur = conn.cursor()
   playlist_name = input("what is this playlist called: ")
   cur.execute("CREATE VIEW '" + str(playlist_name) +"' AS SELECT * FROM 'song.db' WHERE Genre = '" + str(selected_genre) + "' ORDER BY RANDOM() LIMIT 5")
+  my_data = cur.fetchall()
+  for i in my_data:
+	print(my_data)
   conn.commit()
   conn.close()
 
