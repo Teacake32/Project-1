@@ -75,7 +75,7 @@ def sign_in():
     username_check = i[1]
     password_check = i[2]
 
-    if username_check != username_input and password_check != password_input:
+    if username != username_input and username != password_input:
       print("password or username is not valid")
       print("This program will force quite")
       print("----------------------------------")
@@ -84,7 +84,7 @@ def sign_in():
       print("username and password correct")
       print("-------------------------------")
 
-
+sign_in()
 
 
 def alphabet_sort ():
