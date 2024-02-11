@@ -1,187 +1,130 @@
-import pandas as pd
+import os
 import sqlite3
+import tkinter as tk
+from tkinter import ttk
+from PIL import Image, ImageTk
 
 
-def create_songs_database():
-  df = pd.read_csv('songs.csv')
-  df.column = df.columns.str.strip()
-  conn = sqlite3.connect('song.db')
-  df.to_sql('song_databse', conn, if_exists='replace')
-  conn.close()
+def create_database():#creating the databse simple SQL statement
+    conn = sqlite3.connect('questions.db')
+    c = conn.cursor()
 
-create_songs_database()
+    c.execute('''CREATE TABLE IF NOT EXISTS questions
+                 (id INTEGER PRIMARY KEY, topic TEXT, question_path TEXT, answer_path TEXT)''') #database is called questions but each table is sorted by topic
 
-password = ""
-username = ""
-selected_artist = ""
-selected_genre = ""
-
-def create_account ():
-  password_check = False
-  global password
-  global username
-  global selected_artist
-  global selected_genre
-  username = input("Please enter a Username for Musically: ")
-  while password_check is False:
-      password = input("Enter a Password more than 12 Characters: ")
-      if len(password) < 12:
-        print("InValid Password")
-        password_check = False
-      else:
-        print ("Valid Password")
-        selected_artist = input("Please enter a preferred artist: ")
-        selected_genre = input("Please enter a preferred genre: ")
-        print ("-------------------------------------------------")
-        password_check = True
-
-  return (password, username,selected_artist,selected_genre)
-
-create_account()
+    conn.commit()
+    conn.close()
 
 
-def store_logins(username, password,selected_artist,selected_genre):
-  conn = sqlite3.connect('login.db')
-  cur = conn.cursor()
-  cur.execute('''CREATE TABLE IF NOT EXISTS login_database (
-                username text, 
-                password text,
-				preferred_artist text,
-				preferred_genre text
-                )''')
+def insert_question(topic, question_path, answer_path): # using the iteration of the files to insert into the question numbers and the topics ect
+    conn = sqlite3.connect('questions.db')
+    c = conn.cursor()
 
-  cur.execute('''INSERT INTO login_database
-                 VALUES (:username,:password,:preferred_artist,:preferred_genre);''', {'username': username, 'password': password, 'preferred_artist': selected_artist, 'preferred_genre': selected_genre})
-  conn.commit()
-  conn.close()
+    c.execute("INSERT INTO questions (topic, question_path, answer_path) VALUES (?, ?, ?)", (topic, question_path, answer_path))
 
-store_logins(username, password, selected_artist, selected_genre)
+    conn.commit()
+    conn.close()
 
 
-print ("welcome" +  username  + "to the playlist database")
-print ("powered by SQLITE3")
+def fetch_questions(topic): # this function allows the  tkinter module to gain access to each topic from the sql query and database, it is gathering the file pathways based of the topic number
+    conn = sqlite3.connect('questions.db')
+    c = conn.cursor()
 
-def sign_in():
-  username_input = input("please enter your username: ")
-  password_input = input("please enter your password: ")
-  conn = sqlite3.connect('login.db')
-  cur = conn.cursor()
+    c.execute("SELECT question_path, answer_path FROM questions WHERE topic=?", (topic,))
+    questions = c.fetchall()
 
-  cur.execute('SELECT * FROM login_database')
-  database = cur.fetchall()
-  username_check = username
-  password_check = password
+    conn.close()
 
-  if username_check != username_input and password_check != password_input:
-    print("password or username is not valid")
-    print("This program will force quite")
-    print("----------------------------------")
-    exit()
-  else:
-    print("username and password correct")
-    print("-------------------------------")
+    return questions
 
+class ImageQuizApp: #this class while looks confuing is just a bunch of fetch statments and configuration for each size of quesiton box
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Image Quiz App")
 
-sign_in()
+        self.topic_var = tk.StringVar()
+        self.topic_var.set("Select Topic")
+        self.current_question = 1  #counter to show what question number we are on so we can move between questions
 
-def alphabet_sort ():
-  conn = sqlite3.connect('song.db')
-  cur = conn.cursor()
-  cur.execute('SELECT "Song Name", "Artist", "Time (seconds)" FROM "song.db" ORDER BY "Song Name" ASC')
-  my_data = cur.fetchall()
-  for i in my_data:
-    print(i)
-  conn.commit()
-  conn.close()
+        self.create_widgets()
+        self.load_topics()
 
+    def create_widgets(self): # not fully undersood mainly video copy
+        self.topic_label = ttk.Label(self.root, text="Select Topic:")
+        self.topic_label.grid(row=0, column=0, padx=10, pady=5)
 
+        self.topic_combobox = ttk.Combobox(self.root, textvariable=self.topic_var)
+        self.topic_combobox.grid(row=0, column=1, padx=10, pady=5)
+        self.topic_combobox.bind("<<ComboboxSelected>>", self.load_images)
 
-def timed_playlist():
-  selected_time = int(input("How long do you want this playlist to be in Minutes?"
-                            "enter this as just a number e.g 10: "))
-  playlist_name = input("What is this playlist called?: ")
-  total_time = 0
-  conn = sqlite3.connect('song.db')
-  cur = conn.cursor()
-  while total_time < 10:
-    random_song = cur.execute('SELECT "Song Name", "Artist", "Genre", "Time (seconds)" ORDER BY RANDOM() LIMIT 1')
+        self.prev_button = ttk.Button(self.root, text="Previous", command=self.show_previous_question)
+        self.prev_button.grid(row=1, column=0, padx=10, pady=5)
 
-def genre_playlist():
-  selected_genre = input("please enter a selected genre: ")
-  selected_genre = selected_genre.capitalize()
-  conn = sqlite3.connect('song.db')
-  cur = conn.cursor()
-  playlist_name = input("what is this playlist called: ")
-  cur.execute("CREATE VIEW IF NOT EXISTS'" + str(playlist_name) +"' AS SELECT * FROM 'song.db' WHERE Genre = '" + str(selected_genre) + "' ORDER BY RANDOM() LIMIT 5")
-  cur.execute("SELECT * FROM'" + str(playlist_name) + "'")
-  view = cur.fetchall()
-  for i in view:
-    print(i)
-  conn.commit()
-  conn.close()
+        self.next_button = ttk.Button(self.root, text="Next", command=self.show_next_question)
+        self.next_button.grid(row=1, column=1, padx=10, pady=5)
 
+        self.question_label = ttk.Label(self.root, text="Question:")
+        self.question_label.grid(row=2, column=0, padx=10, pady=5)
 
-def pick_artist_textfile():
-  selected_artist = input("What artist do you want to select: ")
-  conn = sqlite3.connect('song.db')
-  cur = conn.cursor()
-  cur.execute("CREATE VIEW IF NOT EXISTS'" + str(selected_artist) +"' AS SELECT * FROM 'song.db' WHERE Artist = '" + str(selected_artist) + "' ")
-  my_data = cur.fetchall()
-  f = open(selected_artist,"w")
-  for i in my_data:
-    f.write(my_data)
-    print (i)
-  f.close()
-  conn.commit()
-  conn.close()
+        self.answer_label = ttk.Label(self.root, text="Answer:")
+        self.answer_label.grid(row=2, column=1, padx=10, pady=5)
 
+        self.question_image_label = ttk.Label(self.root) #image for the question designated box - sushi is a fluffy cat
+        self.question_image_label.grid(row=3, column=0, padx=10, pady=5)
 
-print ("Welcome to the playlist menu" + username)
-print("""Commands for the Playlsit are
-      Alphabetical list of all the songs in our deck - press 1 
-      Create a playlist from all songs in our deck based on a genre - press 2
-      Create a text file of an artists songs - press 3 
-      Create a playlist from a specified time - press 4 
-      """)
-program_check = False
-while program_check == False:
-  number_input = int(input("Enter your option: "))
-  if number_input == 1:
-    alphabet_sort()
-    program_decide = input("would you like to continue to another option, yes or no: ").lower()
-    if program_decide == "yes":
-      program_check = False
-    else:
-      program_check = True
-  elif number_input == 2:
-    genre_playlist()
-    program_decide = input("would you like to continue to another option, yes or no: ").lower()
-    if program_decide == "yes":
-      program_check = False
-    else:
-      program_check = True
-  elif number_input == 3:
-    pick_artist_textfile()
-    program_decide = input("would you like to continue to another option, yes or no: ").lower()
-    if program_decide == "yes":
-      program_check = False
-    else:
-      program_check = True
-  elif number_input == 4:
-   timed_playlist()
-   program_decide = input("would you like to continue to another option, yes or no: ").lower()
-   if program_decide == "yes":
-    program_check = False
-   else:
-    program_check = True
+        self.answer_image_label = ttk.Label(self.root) #image for the answer designated box - elmo is a fluffy cat
+        self.answer_image_label.grid(row=3, column=1, padx=10, pady=5)
 
+    def load_topics(self):
+        topics = ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5', 'Topic 6', 'Topic 7']
+        self.topic_combobox['values'] = topics #this is creating a box at the top  that allows the user to select between boxes
 
+    def load_images(self, event=None): #inserting the images into designated boxes
+        topic = self.topic_var.get()
 
+        #creating the file pathways on Haris' naming convention (minus 1 is needed it is using an iterated loop data)
+        question_path = f"t{topic[-1]}question{self.current_question}.png"
+        answer_path = f"t{topic[-1]}answer{self.current_question}.png"
 
+        #this part is just constructing a full path using all the // and drive naviation
+        question_image = Image.open(os.path.join(os.path.dirname(__file__), question_path)) #question
+        question_image = question_image.resize((500, 500))
+        question_photo = ImageTk.PhotoImage(question_image)
 
+        self.question_image_label.config(image=question_photo)
+        self.question_image_label.image = question_photo
 
+        answer_image = Image.open(os.path.join(os.path.dirname(__file__), answer_path)) #answer
+        answer_image = answer_image.resize((500, 500))
+        answer_photo = ImageTk.PhotoImage(answer_image)
 
+        self.answer_image_label.config(image=answer_photo)
+        self.answer_image_label.image = answer_photo
 
+    def show_previous_question(self): # button that lets you navigate
+        if self.current_question > 1:
+            self.current_question -= 1
+            self.load_images()
 
-print("SYSTEM EXIT")
-print("--------------------------------")
+    def show_next_question(self): #button that lets you navigate
+        if self.current_question < 5: #must be changed if there is more than 5 questions ever
+            self.current_question += 1
+            self.load_images()
+
+def main(): # iterating through all the sample data
+    create_database()
+    #story time - when i first made this it was all inserted manually and said i would steal elmo if jed tried to make it iterable through a loop
+    # Insert sample data
+    for topic in range(1, 8):
+        for i in range(1, 6):
+            topic_name = f"Topic {topic}"
+            question_path = f"t{topic}question{i}.png"
+            answer_path = f"t{topic}answer{i}.png"
+            insert_question(topic_name, question_path, answer_path)
+
+    root = tk.Tk()
+    app = ImageQuizApp(root)
+    root.mainloop()
+
+if __name__ == "__main__": #  the video told me to do this i have not idea how it interacts with the class controlling tkinter
+    main()
