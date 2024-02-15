@@ -37,7 +37,7 @@ def fetch_questions(topic): # this function allows the  tkinter module to gain a
 
     return questions
 
-def fetch_questions_random (topic, question_path, answer_path): 
+def fetch_questions_random (topic): 
   conn = sqlite3.connect('questions.db')
   cur = conn.cursor()
   cur.execute("SELECT question_path, answer_path FROM questions WHERE topic=? AND ORDER BY RANDOM() LIMIT 1" )
