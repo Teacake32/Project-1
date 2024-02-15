@@ -37,7 +37,17 @@ def fetch_questions(topic): # this function allows the  tkinter module to gain a
 
     return questions
 
-class ImageQuizApp: #this class while looks confuing is just a bunch of fetch statments and configuration for each size of quesiton box
+def fetch_questions_random (topic, question_path, answer_path): 
+  conn = sqlite3.connect('questions.db')
+  cur = conn.cursor()
+  cur.execute("SELECT question_path, answer_path FROM questions WHERE topic=? AND ORDER BY RANDOM() LIMIT 1" )
+  questions = cur.fetchall()
+  conn.commit()
+  conn.close()
+  return questions 
+  
+
+class ImageQuizApp: #this class while looks confusing is just a bunch of fetch statments and configuration for each size of quesiton box
     def __init__(self, root):
         self.root = root
         self.root.title("Image Quiz App")
