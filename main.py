@@ -26,18 +26,6 @@ def insert_question(topic, question_path, answer_path):
     conn.close()
 
 
-def fetch_questions(topic):
-    conn = sqlite3.connect('questions.db')
-    c = conn.cursor()
-
-    c.execute("SELECT question_path, answer_path FROM questions WHERE topic=?", (topic,))
-    questions = c.fetchall()
-
-    conn.close()
-
-    return questions
-
-
 def fetch_random_question(topic):
     conn = sqlite3.connect('questions.db')
     cur = conn.cursor()
@@ -71,11 +59,8 @@ class ImageQuizApp:
         self.generate_button = ttk.Button(self.root, text="Generate Random Question", command=self.generate_random_question)
         self.generate_button.grid(row=0, column=2, padx=10, pady=5)
 
-        self.prev_button = ttk.Button(self.root, text="Previous", command=self.show_previous_question)
-        self.prev_button.grid(row=1, column=0, padx=10, pady=5)
-
-        self.next_button = ttk.Button(self.root, text="Next", command=self.show_next_question)
-        self.next_button.grid(row=1, column=1, padx=10, pady=5)
+        self.answer_button = ttk.Button(self.root, text="Answer", command=self.show_answer)
+        self.answer_button.grid(row=1, column=1, padx=10, pady=5)
 
         self.question_label = ttk.Label(self.root, text="Question:")
         self.question_label.grid(row=2, column=0, padx=10, pady=5)
@@ -87,7 +72,6 @@ class ImageQuizApp:
         self.question_image_label.grid(row=3, column=0, padx=10, pady=5)
 
         self.answer_image_label = ttk.Label(self.root)
-        self.answer_image_label.grid(row=3, column=1, padx=10, pady=5)
 
     def load_topics(self):
         topics = ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5', 'Topic 6', 'Topic 7']
@@ -104,26 +88,19 @@ class ImageQuizApp:
         self.question_image_label.config(image=question_photo)
         self.question_image_label.image = question_photo
 
-        answer_image = Image.open(os.path.join(os.path.dirname(__file__), answer_path))
-        answer_image = answer_image.resize((500, 500))
-        answer_photo = ImageTk.PhotoImage(answer_image)
-
-        self.answer_image_label.config(image=answer_photo)
-        self.answer_image_label.image = answer_photo
-
-    def show_previous_question(self):
-        if self.current_question > 1:
-            self.current_question -= 1
-            self.load_images()
-
-    def show_next_question(self):
-        if self.current_question < 5:
-            self.current_question += 1
-            self.load_images()
+        self.answer_image = Image.open(os.path.join(os.path.dirname(__file__), answer_path))
+        self.answer_image = self.answer_image.resize((500, 500))
 
     def generate_random_question(self):
         topic = self.topic_var.get()
         self.load_images()
+
+    def show_answer(self):
+        answer_photo = ImageTk.PhotoImage(self.answer_image)
+
+        self.answer_image_label.config(image=answer_photo)
+        self.answer_image_label.image = answer_photo
+        self.answer_image_label.grid(row=3, column=1, padx=10, pady=5)
 
 def main():
     create_database()
